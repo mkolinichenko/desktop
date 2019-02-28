@@ -44,13 +44,22 @@ interface IPushPullButtonProps {
 
   /** Has the user configured pull.rebase to anything? */
   readonly pullWithRebase?: boolean
+
+  /** If the current branch has been rebased, the user is permitted to force-push */
+  readonly branchWasRebased: boolean
 }
 
 function getActionLabel(
-  { ahead, behind }: IAheadBehind,
+  aheadBehind: IAheadBehind,
   remoteName: string,
+  branchWasRebased: boolean,
   pullWithRebase?: boolean
 ) {
+  if (isBranchRebased(branchWasRebased, aheadBehind)) {
+    return `Force push ${remoteName}`
+  }
+
+  const { ahead, behind } = aheadBehind
   if (behind > 0) {
     return pullWithRebase && enablePullWithRebase()
       ? `Pull ${remoteName} with rebase`
@@ -60,6 +69,10 @@ function getActionLabel(
     return `Push ${remoteName}`
   }
   return `Fetch ${remoteName}`
+}
+
+function isBranchRebased(branchWasRebased: boolean, aheadBehind: IAheadBehind) {
+  return branchWasRebased && aheadBehind.behind > 0 && aheadBehind.ahead > 0
 }
 
 /**
@@ -154,6 +167,7 @@ export class PushPullButton extends React.Component<IPushPullButtonProps, {}> {
     return getActionLabel(
       this.props.aheadBehind,
       this.props.remoteName,
+      this.props.branchWasRebased,
       this.props.pullWithRebase
     )
   }
@@ -174,6 +188,11 @@ export class PushPullButton extends React.Component<IPushPullButtonProps, {}> {
     if (this.props.networkActionInProgress) {
       return OcticonSymbol.sync
     }
+
+    if (this.props.branchWasRebased) {
+      return OcticonSymbol.repoForcePush
+    }
+
     if (behind > 0) {
       return OcticonSymbol.arrowDown
     }
@@ -216,9 +235,7 @@ export class PushPullButton extends React.Component<IPushPullButtonProps, {}> {
   }
 
   private performAction = () => {
-    const repository = this.props.repository
-    const dispatcher = this.props.dispatcher
-    const aheadBehind = this.props.aheadBehind
+    const { repository, dispatcher, aheadBehind, branchWasRebased } = this.props
 
     if (!aheadBehind) {
       dispatcher.push(repository)
@@ -227,7 +244,9 @@ export class PushPullButton extends React.Component<IPushPullButtonProps, {}> {
 
     const { ahead, behind } = aheadBehind
 
-    if (behind > 0) {
+    if (isBranchRebased(branchWasRebased, aheadBehind)) {
+      dispatcher.confirmForcePush(repository)
+    } else if (behind > 0) {
       dispatcher.pull(repository)
     } else if (ahead > 0) {
       dispatcher.push(repository)
