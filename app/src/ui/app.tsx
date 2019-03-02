@@ -102,7 +102,7 @@ const HourInMilliseconds = MinuteInMilliseconds * 60
 /**
  * Check for updates every 4 hours
  */
-const UpdateCheckInterval = 4 * HourInMilliseconds
+//const UpdateCheckInterval = 4 * HourInMilliseconds
 
 /**
  * Send usage stats every 4 hours
