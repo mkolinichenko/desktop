@@ -211,16 +211,38 @@ export async function getWorkingDirectoryDiff(
   return buildDiff(output, repository, file, 'HEAD', lineEndingsChange)
 }
 
+function getFileChangeFromOID(oid: string): FileChange {
+  let lfsStorage = Path.join('.git', 'lfs', 'objects')
+  return new FileChange(
+    Path.join(lfsStorage, oid.substr(0, 2), oid.substr(2, 2), oid),
+    {
+      kind: AppFileStatusKind.Modified,
+    }
+  )
+}
+
 async function getImageDiff(
   repository: Repository,
   file: FileChange,
-  commitish: string
+  commitish: string,
+  oidLeft: string | undefined = undefined,
+  oidRight: string | undefined = undefined
 ): Promise<IImageDiff> {
   let current: Image | undefined = undefined
   let previous: Image | undefined = undefined
 
+  if (oidLeft && oidRight) {
+    previous = await getWorkingDirectoryImage(
+      repository,
+      getFileChangeFromOID(oidLeft)
+    )
+    current = await getWorkingDirectoryImage(
+      repository,
+      getFileChangeFromOID(oidRight)
+    )
+  }
   // Are we looking at a file in the working directory or a file in a commit?
-  if (file instanceof WorkingDirectoryFileChange) {
+  else if (file instanceof WorkingDirectoryFileChange) {
     // No idea what to do about this, a conflicted binary (presumably) file.
     // Ideally we'd show all three versions and let the user pick but that's
     // a bit out of scope for now.
@@ -291,7 +313,13 @@ export async function convertDiff(
         kind: DiffType.Binary,
       }
     } else {
-      return getImageDiff(repository, file, commitish)
+      return getImageDiff(
+        repository,
+        file,
+        commitish,
+        diff.oidLeft,
+        diff.oidRight
+      )
     }
   }
 

@@ -44,6 +44,9 @@ interface IDiffHeaderInfo {
    * new and/or old file was binary.
    */
   readonly isBinary: boolean
+  readonly isLfs?: boolean
+  readonly oidLeft?: string
+  readonly oidRight?: string
 }
 
 /**
@@ -171,6 +174,19 @@ export class DiffParser {
       }
 
       if (this.lineStartsWith('+++')) {
+        let match = this.text.match(/oid sha256:([0-9a-f]*)/g)
+        if (match && match.length == 2) {
+          let left = match[0].split(':')
+          let right = match[1].split(':')
+          if (left.length == 2 && right.length == 2) {
+            return {
+              isBinary: true,
+              isLfs: true,
+              oidLeft: left[1],
+              oidRight: right[1],
+            }
+          }
+        }
         return { isBinary: false }
       }
     }
@@ -387,7 +403,15 @@ export class DiffParser {
       }
 
       if (headerInfo.isBinary) {
-        return { header, contents: '', hunks: [], isBinary: true }
+        return {
+          header,
+          contents: '',
+          hunks: [],
+          isBinary: true,
+          isLfs: headerInfo.isLfs,
+          oidLeft: headerInfo.oidLeft,
+          oidRight: headerInfo.oidRight,
+        }
       }
 
       const hunks = new Array<DiffHunk>()
@@ -406,7 +430,15 @@ export class DiffParser {
         // a new string instance.
         .replace(/\n\\ No newline at end of file/g, '')
 
-      return { header, contents, hunks, isBinary: headerInfo.isBinary }
+      return {
+        header,
+        contents,
+        hunks,
+        isBinary: headerInfo.isBinary,
+        isLfs: headerInfo.isLfs,
+        oidLeft: headerInfo.oidLeft,
+        oidRight: headerInfo.oidRight,
+      }
     } finally {
       this.reset()
     }

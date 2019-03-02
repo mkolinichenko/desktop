@@ -64,4 +64,8 @@ export interface IRawDiff {
    * could not be diffed due to one of the versions being binary.
    */
   readonly isBinary: boolean
+
+  readonly isLfs?: boolean
+  readonly oidLeft?: string
+  readonly oidRight?: string
 }
