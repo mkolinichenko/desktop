@@ -2,7 +2,7 @@ import {
   git,
   IGitExecutionOptions,
   gitNetworkArguments,
-  GitError,
+  //GitError,
 } from './core'
 import { Repository } from '../../models/repository'
 import { IPushProgress } from '../../models/progress'
@@ -95,6 +95,6 @@ export async function push(
   const result = await git(args, repository.path, 'push', opts)
 
   if (result.gitErrorDescription) {
-    throw new GitError(result, args)
+    //throw new GitError(result, args)
   }
 }
